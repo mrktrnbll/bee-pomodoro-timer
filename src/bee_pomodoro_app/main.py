@@ -5,7 +5,10 @@ from PyQt6.QtCore import Qt
 import sys
 import os
 
-from sprites.movement_handlers import get_random_spawn_position
+from sprites.movement_handlers import (
+    add_position_to_populated_positions,
+    get_unpopulated_spawn_position
+)
 
 ASSETS_DIR = os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), "assets")
 IMAGE_DIR = os.path.join(ASSETS_DIR, "images")
@@ -22,11 +25,12 @@ class TransparentWindow(QMainWindow):
         screen = QApplication.primaryScreen().geometry()
         self.setGeometry(screen)
 
-        self.populated_positions: list[tuple(int)] = []
+        self.populated_positions: list[tuple[int, int]] = []
 
         # add to window based functions
         self._add_quit_button()
         self._add_bee()
+        self._testing_positions()
 
     def _add_quit_button(self):
         btn = QPushButton("✕", self)
@@ -56,11 +60,16 @@ class TransparentWindow(QMainWindow):
         bee_label.setPixmap(pixmap)
         bee_label.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         bee_label.resize(pixmap.width(), pixmap.height())
-        spawn_position_x, spawn_position_y = get_random_spawn_position(
-            self.width() + WIDTH_OFFSET, self.height(), pixmap.width() + WIDTH_OFFSET, pixmap.height()
+        spawn_position_x, spawn_position_y = get_unpopulated_spawn_position(
+            self, self.width() - WIDTH_OFFSET, self.height(), pixmap.width(), pixmap.height()
         )
         bee_label.move(spawn_position_x, spawn_position_y)
+        add_position_to_populated_positions(self, spawn_position_x, spawn_position_y)
         bee_label.show()
+
+    def _testing_positions(self):
+        for i in range(50):
+            self._add_bee()
 
 
 if __name__ == "__main__":
