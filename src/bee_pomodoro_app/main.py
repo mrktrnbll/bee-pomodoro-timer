@@ -1,5 +1,5 @@
 """main entry point for bee pomodoro app"""
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QMenuBar, QSystemTrayIcon, QMenu
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QPixmap, QIcon, QAction
 from PyQt6.QtCore import Qt, QTimer
 import sys
@@ -13,6 +13,14 @@ from sprites.general import (
     load_sprite,
     load_random_flower,
 )
+from src.bee_pomodoro_app.interface.timer import (
+    add_second_to_timer,
+    has_five_minutes_passed,
+    has_twenty_five_minutes_passed,
+    has_thirty_minutes_passed,
+    reset_timer,
+)
+
 
 ASSETS_DIR = os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), "assets")
 IMAGE_DIR = os.path.join(ASSETS_DIR, "images")
@@ -21,7 +29,7 @@ WIDTH_OFFSET = 40
 
 
 class TransparentWindow(QMainWindow):
-    def __init__(self, action: QAction):
+    def __init__(self, timer: QAction):
         super().__init__()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowFlags(
@@ -31,7 +39,6 @@ class TransparentWindow(QMainWindow):
         self.setGeometry(screen)
 
         self.current_timer_running: bool = False
-        self.current_time: int = 0
         self.populated_positions: list[tuple[int, int]] = []
         self.flowers: list[QPixmap] = [load_sprite(f"flower{i}.png", IMAGE_DIR) for i in range(1, 6)]
 
@@ -43,7 +50,7 @@ class TransparentWindow(QMainWindow):
         self._add_bee()
         self._add_random_flower()
 
-        self.action = action
+        self.timer = timer
 
         self.qtimer = QTimer()
         self.qtimer.setInterval(1000)
@@ -126,25 +133,24 @@ class TransparentWindow(QMainWindow):
 
     def _update_timer_menu(self):
         """Update the timer label in the macOS menu bar."""
-        current_time: str = self.action.text()
-        minutes, seconds = map(int, current_time.split(":"))
-        self.action.setText(f"{minutes:02d}:{seconds+1:02d}")
+        new_time_to_display: str = add_second_to_timer(self.timer.text())
+        self.timer.setText(new_time_to_display)
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setWindowIcon(QIcon(os.path.join(ASSETS_DIR, "bee.ico")))
 
-    icon = QLabel("00:00")
     tray = QSystemTrayIcon()
     tray.setIcon(QIcon(os.path.join(ASSETS_DIR, "bee.ico")))
     tray.setVisible(True)
     menu = QMenu()
-    action = QAction("00:00")
-    menu.addAction(action)
+    timer = QAction("00:55")
+    timer.setDisabled(True)
+    menu.addAction(timer)
     tray.setContextMenu(menu)
 
-    window = TransparentWindow(action)
+    window = TransparentWindow(timer)
     window.setWindowTitle("Bee Pomodoro")
     window.show()
     sys.exit(app.exec())
