@@ -1,4 +1,15 @@
 """functions related to the timer interface"""
+import enum
+
+POMODORO_WORK_DURATION = 25
+SHORT_BREAK_DURATION = 5
+LONG_BREAK_DURATION = 30
+LONG_BREAK_INTERVAL = 4
+
+class TimerState(enum.Enum):
+    WORK = 1
+    SHORT_BREAK = 2
+    LONG_BREAK = 3
 
 def add_second_to_timer(current_time: str) -> str:
     """adds second to the timer"""

@@ -19,6 +19,11 @@ from src.bee_pomodoro_app.interface.timer import (
     has_twenty_five_minutes_passed,
     has_thirty_minutes_passed,
     reset_timer,
+    POMODORO_WORK_DURATION,
+    SHORT_BREAK_DURATION,
+    LONG_BREAK_DURATION,
+    LONG_BREAK_INTERVAL,
+    TimerState,
 )
 
 
@@ -57,6 +62,9 @@ class TransparentWindow(QMainWindow):
         self.menu = menu
         self._init_timer()
         self._init_status_menu_buttons()
+
+        self.timer_state: TimerState = TimerState.WORK
+        self.number_of_pomodoros_completed: int = 0
 
     def _init_timer(self):
         self.qtimer = QTimer()
@@ -112,6 +120,25 @@ class TransparentWindow(QMainWindow):
         """Update the timer label in the macOS menu bar."""
         new_time_to_display: str = add_second_to_timer(self.timer_label.text())
         self.timer_label.setText(new_time_to_display)
+        # check pomodoro values
+        if self.timer_state == TimerState.WORK and self.number_of_pomodoros_completed == LONG_BREAK_INTERVAL and has_twenty_five_minutes_passed(new_time_to_display):
+            self.timer_state = TimerState.LONG_BREAK
+            self.timer_label.setText(reset_timer())
+            self.number_of_pomodoros_completed = 0
+            self._add_random_flower()
+        if self.timer_state == TimerState.WORK and has_twenty_five_minutes_passed(new_time_to_display):
+            self.timer_state = TimerState.SHORT_BREAK
+            self.timer_label.setText(reset_timer())
+            self.number_of_pomodoros_completed += 1
+            self._add_random_flower()
+        elif self.timer_state == TimerState.SHORT_BREAK and has_five_minutes_passed(new_time_to_display):
+            self.timer_state = TimerState.WORK
+            self.timer_label.setText(reset_timer())
+            self._add_random_flower()
+        elif self.timer_state == TimerState.LONG_BREAK and has_thirty_minutes_passed(new_time_to_display):
+            self.timer_state = TimerState.WORK
+            self.timer_label.setText(reset_timer())
+            self._add_random_flower() # should be big event, many flowers spawn, maybe a swarm of bees?
 
 
 if __name__ == "__main__":
