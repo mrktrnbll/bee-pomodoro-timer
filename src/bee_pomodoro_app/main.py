@@ -29,12 +29,14 @@ WIDTH_OFFSET = 40
 
 
 class TransparentWindow(QMainWindow):
-    def __init__(self, timer: QAction):
+    def __init__(self, timer_label: QAction, menu: QMenu):
         super().__init__()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint
+            Qt.WindowType.FramelessWindowHint # |
+            # Qt.WindowType.Tool
         )
+
         screen = QApplication.primaryScreen().geometry()
         self.setGeometry(screen)
 
@@ -43,64 +45,39 @@ class TransparentWindow(QMainWindow):
         self.flowers: list[QPixmap] = [load_sprite(f"flower{i}.png", IMAGE_DIR) for i in range(1, 6)]
 
         # UI elements
-        self.stop_resume_button: QPushButton = QPushButton("▶", self)
+        self.stop_resume_button = QAction("▶ Resume")
+        self.stop_resume_button.triggered.connect(self._stop_resume_timer)
+        self.quit = QAction("🆇 Quit")
+        self.quit.triggered.connect(QApplication.quit)
         # add to window based functions
-        self._add_quit_button()
-        self._add_stop_resume_button()
         self._add_bee()
         self._add_random_flower()
 
-        self.timer = timer
+        self.timer_label = timer_label
+        self.menu = menu
+        self._init_timer()
+        self._init_status_menu_buttons()
 
+    def _init_timer(self):
         self.qtimer = QTimer()
         self.qtimer.setInterval(1000)
         self.qtimer.timeout.connect(self._update_timer_menu)
-        self.qtimer.start()
 
-    def _add_quit_button(self):
-        btn = QPushButton("✕", self)
-        btn.setFixedSize(30, 30)
-        btn.move(10, 50)  # top-left corner
-        btn.clicked.connect(QApplication.quit)
-        btn.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(255, 0, 0, 150);
-                color: white;
-                border-radius: 15px;
-                font-size: 14px;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: rgba(255, 0, 0, 220);
-            }
-        """)
-        btn.show()
-
-    def _add_stop_resume_button(self):
-        self.stop_resume_button.setFixedSize(30, 30)
-        self.stop_resume_button.move(50, 50)
-        self.stop_resume_button.clicked.connect(self._stop_resume_timer)
-        self.stop_resume_button.setStyleSheet("""
-            QPushButton {
-                background-color: rgba(0, 0, 255, 150);
-                color: white;
-                border-radius: 15px;
-                font-size: 14px;
-                border: none;
-            }
-            QPushButton:hover {
-                background-color: rgba(0, 0, 255, 220);
-            }
-        """)
-        self.stop_resume_button.show()
+    def _init_status_menu_buttons(self):
+        """Initialize the buttons in the macOS menu bar."""
+        self.menu.addSeparator()
+        self.menu.addAction(self.stop_resume_button)
+        self.menu.addAction(self.quit)
 
     def _stop_resume_timer(self):
         if self.current_timer_running:
             self.current_timer_running = False
-            self.stop_resume_button.setText("▶")
+            self.stop_resume_button.setText("▶ Resume")
+            self.qtimer.stop()
         else:
             self.current_timer_running = True
-            self.stop_resume_button.setText("■")
+            self.stop_resume_button.setText("■ Pause")
+            self.qtimer.start()
 
     def _add_bee(self):
         bee_path = os.path.join(IMAGE_DIR, "bee.png")
@@ -133,8 +110,8 @@ class TransparentWindow(QMainWindow):
 
     def _update_timer_menu(self):
         """Update the timer label in the macOS menu bar."""
-        new_time_to_display: str = add_second_to_timer(self.timer.text())
-        self.timer.setText(new_time_to_display)
+        new_time_to_display: str = add_second_to_timer(self.timer_label.text())
+        self.timer_label.setText(new_time_to_display)
 
 
 if __name__ == "__main__":
@@ -145,12 +122,12 @@ if __name__ == "__main__":
     tray.setIcon(QIcon(os.path.join(ASSETS_DIR, "bee.ico")))
     tray.setVisible(True)
     menu = QMenu()
-    timer = QAction("00:55")
-    timer.setDisabled(True)
-    menu.addAction(timer)
+    timer_label = QAction("00:55")
+    timer_label.setDisabled(True)
+    menu.addAction(timer_label)
     tray.setContextMenu(menu)
 
-    window = TransparentWindow(timer)
+    window = TransparentWindow(timer_label, menu)
     window.setWindowTitle("Bee Pomodoro")
     window.show()
     sys.exit(app.exec())
